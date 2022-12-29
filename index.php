@@ -4,7 +4,7 @@
 
 	use TelegramBot as Bot;
 
-	$bot = new Bot(['botToken'=>'5877866426:AAHOkyKw7xyvndcxPXEKjcuIXaMuKaB4uH4']);
+	$bot = new Bot(['botToken'=>'']);
 
 	$bot->sendMessage("<b>Assalomu alaykum</b>", 931026030);
 ?>
