@@ -10,11 +10,11 @@
 	$bot->setInlineKeyBoard([
 		[
 			[
-				'text'=>'Test uchun',
+				'text'=>'Birichi matn',
 				'callback_data'=>'test1'
 			],
 			[
-				'text'=>'Test uchun',
+				'text'=>'ikkinchi matn',
 				'callback_data'=>'test2'
 			]
 		],
