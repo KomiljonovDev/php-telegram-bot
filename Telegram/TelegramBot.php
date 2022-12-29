@@ -53,14 +53,17 @@
 			if (!is_null($this->reply_markup) && array_key_exists('inline_keyboard', $content['reply_markup']) && count($content['reply_markup']['inline_keyboard']) > 0) {
 				unset($content['reply_markup']['keyboard']);
 			}
+
 			$this->saveLogs($content);
+
 			$url = $this->apiUrl . $this->botUrl .  $this->botToken . '/' . $action;
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_HEADER, false);
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($ch, CURLOPT_POST, true);
-			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type' => 'application/json'));
-			curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+			curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($content));
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 			$result = curl_exec($ch);
 			curl_close($ch);
@@ -86,6 +89,27 @@
 				return false;
 			}
 			$this->request('setWebHook', compact('url', 'certificate'));
+			return $this;
+		}
+
+		public function setInlineKeyBoard($keyboard = [])
+		{
+			if (!count($keyboard)) {
+				if ($this->showErrors) {
+					new TelegramErrorHandler("Keyboard bo'sh bo'lmasligi zarur!");
+				}
+				return false;
+			}
+			$this->reply_markup['inline_keyboard'] = $keyboard;
+			return $this;
+		}
+
+		public function setReplyKeyboard($keyboard,$resize_keyboard = true, $remove_keyboard = false)
+		{
+			$this->reply_markup['keyboard'] = $keyboard;
+			$this->reply_markup['resize_keyboard'] = $resize_keyboard;
+			$this->reply_markup['remove_keyboard'] = $remove_keyboard;
+			$this->reply_markup['input_field_placeholder'] = 'Ishlanmoqda...';
 			return $this;
 		}
 
