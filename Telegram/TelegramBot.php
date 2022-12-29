@@ -43,7 +43,7 @@
 				}
 			}
 			if (!$this->botToken) {
-				new TelegramErrorHandler('Bot tokenni kiriting!');
+				throw new TelegramErrorHandler('Bot tokenni kiriting!');
 			}
 		}
 
@@ -93,7 +93,7 @@
 			curl_close($ch);
 			$this->request = json_decode($result);
 			if ($this->showErrors && !$this->request->ok) {
-				new TelegramErrorHandler($this->request->description);
+				throw new TelegramErrorHandler($this->request->description);
 			}
 			return $this->request;
 		}
@@ -102,13 +102,13 @@
 		{
 			if (filter_var($url,FILTER_VALIDATE_URL) === false) {
 				if ($this->showErrors) {
-					new TelegramErrorHandler("Noto'g'ri Url kiritildi.");
+					throw new TelegramErrorHandler("Noto'g'ri Url kiritildi.");
 				}
 				return false;
 			}
 			if (parse_url($url, PHP_URL_SCHEME) !== 'https') {
 				if ($this->showErrors) {
-					new TelegramErrorHandler("URL Noto'g'ri, https kabi bo'lishligi zarur!");
+					throw new TelegramErrorHandler("URL Noto'g'ri, https kabi bo'lishligi zarur!");
 				}
 				return false;
 			}
@@ -129,7 +129,7 @@
 		{
 			if (!count($keyboard)) {
 				if ($this->showErrors) {
-					new TelegramErrorHandler("Keyboard bo'sh bo'lmasligi zarur!");
+					throw new TelegramErrorHandler("Keyboard bo'sh bo'lmasligi zarur!");
 				}
 				return false;
 			}
@@ -161,14 +161,42 @@
 			return $this;
 		}
 
+		public function sendChatAction($action, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $this->chat_id = $chat_id : $this->chat_id;
+			$actions = array(
+				'typing',
+				'upload_photo',
+				'upload_video',
+				'upload_voice',
+				'upload_document',
+				'choose_sticker',
+				'find_location',
+			);
+			if (isset($action) && in_array($action, $actions)) {
+				$this->result = $this->request('sendChatAction', compact('chat_id', 'action'));
+				return $this;
+			}
+			throw new TelegramErrorHandler('action topilmadi!');
+		}
+
 		public function getMe()
 		{
 			$this->result = $this->request('getMe');
 			return $this->result();
 		}
 
-		public function result()
+		public function result($key = null)
 		{
+			if (!is_null($key)) {
+				if (property_exists($this->result, 'result')) {
+					if (property_exists($this->result->result, $key)) {
+						return $this->result->result->$key;
+					}
+					return false;
+				}
+				return $this->result->result;
+			}
 			return $this->result;
 		}
 
