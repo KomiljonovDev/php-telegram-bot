@@ -15,6 +15,7 @@
 	 * @author KomiljonovDev
 	 * 
 	 */
+
 	class TelegramBot
 	{
 		private $apiUrl = 'https://api.telegram.org';
@@ -45,6 +46,29 @@
 				new TelegramErrorHandler('Bot tokenni kiriting!');
 			}
 		}
+
+		public function reset($resetKey = false)
+		{
+			/**
+			 * 
+			 * Aynan bir ma'lumotni o'zinigina tozalamoqchi bo'lingan
+			 * holatda, tozalanishi kerak bo'lgan ma'lumot parametrda
+			 * beriladi,agar berilmasa barcha ma'lumotlar tozalanadi
+			 *
+			*/
+			
+			if ($resetKey) {
+				$this->$resetKey = null;
+				return $this;
+			}
+			$this->chat_id = null;
+			$this->result = null;
+			$this->request = null;
+			$this->reply_markup = null;
+
+			return $this;
+		}
+
 		public function request($action, $content = [])
 		{
 			if (!is_null($this->reply_markup)) {
@@ -92,6 +116,15 @@
 			return $this;
 		}
 
+		public function sendMessage($text, $chat_id = null, $parse_mode = null)
+		{
+			$content['text'] = $text;
+			$content['chat_id'] = (!is_null($chat_id)) ? $chat_id : $this->chat_id;
+			$content['parse_mode'] = (!is_null($parse_mode)) ? $parse_mode : $this->parse_mode;
+			$this->result = $this->request('sendMessage', $content);
+			return $this;
+		}
+
 		public function setInlineKeyBoard($keyboard = [])
 		{
 			if (!count($keyboard)) {
@@ -113,13 +146,25 @@
 			return $this;
 		}
 
-		public function sendMessage($text, $chat_id = null, $parse_mode = null)
+		public function removeInlineKeyboard()
 		{
-			$content['text'] = $text;
-			$content['chat_id'] = (!is_null($chat_id)) ? $chat_id : $this->chat_id;
-			$content['parse_mode'] = (!is_null($parse_mode)) ? $parse_mode : $this->parse_mode;
-			$this->result = $this->request('sendMessage', $content);
+			unset($this->reply_markup['inline_keyboard']);
 			return $this;
+		}
+
+		public function removeReplyKeyboard()
+		{
+			unset($this->reply_markup['keyboard']);
+			unset($this->reply_markup['resize_keyboard']);
+			unset($this->reply_markup['remove_keyboard']);
+			unset($this->reply_markup['input_field_placeholder']);
+			return $this;
+		}
+
+		public function getMe()
+		{
+			$this->result = $this->request('getMe');
+			return $this->result();
 		}
 
 		public function result()
