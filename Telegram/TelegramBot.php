@@ -43,7 +43,7 @@
 				}
 			}
 			if (!$this->botToken) {
-				throw new TelegramErrorHandler('Bot tokenni kiriting!');
+				new TelegramErrorHandler('Bot tokenni kiriting!');
 			}
 		}
 
@@ -93,7 +93,7 @@
 			curl_close($ch);
 			$this->request = json_decode($result);
 			if ($this->showErrors && !$this->request->ok) {
-				throw new TelegramErrorHandler($this->request->description);
+				new TelegramErrorHandler($this->request->description);
 			}
 			return $this->request;
 		}
@@ -102,13 +102,13 @@
 		{
 			if (filter_var($url,FILTER_VALIDATE_URL) === false) {
 				if ($this->showErrors) {
-					throw new TelegramErrorHandler("Noto'g'ri Url kiritildi.");
+					new TelegramErrorHandler("Noto'g'ri Url kiritildi.");
 				}
 				return false;
 			}
 			if (parse_url($url, PHP_URL_SCHEME) !== 'https') {
 				if ($this->showErrors) {
-					throw new TelegramErrorHandler("URL Noto'g'ri, https kabi bo'lishligi zarur!");
+					new TelegramErrorHandler("URL Noto'g'ri, https kabi bo'lishligi zarur!");
 				}
 				return false;
 			}
@@ -129,7 +129,7 @@
 		{
 			if (!count($keyboard)) {
 				if ($this->showErrors) {
-					throw new TelegramErrorHandler("Keyboard bo'sh bo'lmasligi zarur!");
+					new TelegramErrorHandler("Keyboard bo'sh bo'lmasligi zarur!");
 				}
 				return false;
 			}
@@ -177,7 +177,46 @@
 				$this->result = $this->request('sendChatAction', compact('chat_id', 'action'));
 				return $this;
 			}
-			throw new TelegramErrorHandler('action topilmadi!');
+			new TelegramErrorHandler('action topilmadi!');
+		}
+
+		public function sendPhoto($photo, $caption = null, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $chat_id : $this->chat_id;
+			$caption = $caption ? $caption : '';
+			$data = compact('chat_id', 'photo', 'caption');
+			if (!file_exists($photo) && filter_var($photo, FILTER_VALIDATE_URL)) {
+				$this->result = $this->request('sendPhoto', $data);
+				return $this->result;
+			}
+			// $this->result = $this->uploadFile();
+			// return $this->result;
+		}
+
+		public function sendVideo($video, $caption = null, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $chat_id : $this->chat_id;
+			$caption = $caption ? $caption : '';
+			$data = compact('chat_id', 'video', 'caption');
+			if (!file_exists($video) && filter_var($video, FILTER_VALIDATE_URL)) {
+				$this->result = $this->request('sendVideo', $data);
+				return $this->result;
+			}
+			// $this->result = $this->uploadFile();
+			// return $this->result;
+		}
+
+		public function sendAudio($audio, $caption = null, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $chat_id : $this->chat_id;
+			$caption = $caption ? $caption : '';
+			$data = compact('chat_id', 'audio', 'caption');
+			if (!file_exists($audio) && filter_var($audio, FILTER_VALIDATE_URL)) {
+				$this->result = $this->request('sendAudio', $data);
+				return $this->result;
+			}
+			// $this->result = $this->uploadFile();
+			// return $this->result;
 		}
 
 		public function getMe()
