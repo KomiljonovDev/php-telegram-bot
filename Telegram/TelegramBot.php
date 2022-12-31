@@ -324,6 +324,7 @@
 			return $this->request;
 		}
 
+		// Ushbu yerdan qoldim, video ni hostingda bemalol yuklayapti,togridan togri link bilan yuklamayapti
 		public function uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded,  $action, $content)
 		{
 			if ($this->fileSize >= 1048576) {
