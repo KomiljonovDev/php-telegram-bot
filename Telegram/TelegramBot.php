@@ -34,6 +34,8 @@
 		private $request;
 		private $reply_markup;
 
+		private $forProgress;
+		private $fileSize;
 		function __construct($dataSet)
 		{
 			if (count($dataSet)) {
@@ -228,8 +230,8 @@
 				$this->result = $this->request('sendDocument', $data);
 				return $this;
 			}
-			// $this->result = $this->uploadFile();
-			// return $this;
+			$this->result = $this->uploadFile('sendDocument',$data);
+			return $this;
 		}
 
 		public function sendLocation($latitude, $longitude, $chat_id = null)
@@ -246,6 +248,106 @@
 			$data = compact('chat_id', 'phone_number', 'first_name');
 			$this->result = $this->request('sendContact', $data);
 			return $this;
+		}
+
+		public function uploadFile($action, $content=[])
+		{
+			$this->sendMessage('Iltimos biroz kuting...');
+			$methods = array(
+				'sendPhoto'=>'photo',
+				'sendAudio'=>'audio',
+				'sendDocument'=>'document',
+				'sendVideo'=>'video'
+			);
+			if (filter_var($content[$methods[$action]], FILTER_VALIDATE_URL)) {
+				
+				$file = 'Telegram/uploads/tmp/' . rand(0, 10000);
+				$byUrl = true;
+				file_put_contents($file, file_get_contents($content[$methods[$action]]));
+				$finfo = finfo_open(FILEINFO_MIME_TYPE);
+    			$mime_type = finfo_file($finfo, $file);
+    			$extensions = array(
+	                'image/jpeg' => '.jpg',
+	                'image/png' => '.png',
+	                'image/gif' => '.gif',
+	                'image/bmp' => '.bmp',
+	                'image/tiff' => '.tif',
+	                'audio/ogg' => '.ogg',
+	                'audio/mpeg' => '.mp3',
+	                'video/mp4' => '.mp4',
+	                'image/webp' => '.webp'
+	            );
+	            if (strtolower($action) != 'senddocument') {
+	            	if (!array_key_exists($mime_type, $extensions)) {
+	            		unlink($file);
+	            		new TelegramErrorHandler("Noto'g'ri file turi kiritildi!");
+	            		return;
+	            	}
+	            	$newFile = $file . $extensions[$mime_type];
+	            	rename($file, $newFile);
+	            	$content[$methods[$action]] = new CURLFile($newFile, $mime_type, $newFile);
+	            }
+			}else{
+				$finfo = finfo_open(FILEINFO_MIME_TYPE);
+				$mime_type = finfo_file($finfo, $content[$methods[$action]]);
+				$newFile = $content[$methods[$action]];
+				$content[$methods[$action]] = new CURLFile($content[$methods[$action]], $mime_type, $content[$methods[$action]]);
+			}
+
+			$this->fileSize = filesize($newFile);
+
+			$this->forProgress = round(($this->fileSize * 10 / 100) / 1024 * 1024, 0);
+			$this->forProgressPercent = $this->forProgress;
+
+			$url = $this->apiUrl . $this->botUrl .  $this->botToken . '/' . $action;
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_POST, true);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+			curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+			curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($resource, $downloaded, $download_size, $upload_size, $uploaded) use($action, $content)
+			{
+				$this->uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded, $action, $content);
+			});
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			$result = curl_exec($ch);
+			curl_close($ch);
+
+			$this->request = json_decode($result, true);
+
+			if (isset($byUrl)) unlink($newFile);
+
+			if ($this->showErrors && !$this->result->ok) {
+				new TelegramErrorHandler($this->result->description);
+			}
+
+			return $this->request;
+		}
+
+		public function uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded,  $action, $content)
+		{
+			if ($this->fileSize >= 1048576) {
+				$this->forProgress -= 1;
+				if ((($this->forProgress + 1) == $this->forProgressPercent) || $this->forProgress == 1) {
+					$actions = array(
+						'sendPhoto' => 'upload_photo',
+						'sendAudio' => 'upload_audio',
+						'sendVoice' => 'upload_voice',
+						'sendDocument' => 'upload_document',
+						'sendVideo' => 'upload_video'
+					);
+
+					if (array_key_exists($action, $actions)) {
+						$action = $actions[$action];
+					}else{
+						$action = 'typing';
+					}
+					if ($this->forProgress == 1) {
+						$this->forProgress = $this->forProgressPercent;
+					}
+					$this->sendChatAction($action, $content['chat_id']);
+				}
+			}
 		}
 
 		public function getMe()
