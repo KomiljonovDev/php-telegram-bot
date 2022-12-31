@@ -116,15 +116,6 @@
 			return $this;
 		}
 
-		public function sendMessage($text, $chat_id = null, $parse_mode = null)
-		{
-			$content['text'] = $text;
-			$content['chat_id'] = (!is_null($chat_id)) ? $chat_id : $this->chat_id;
-			$content['parse_mode'] = (!is_null($parse_mode)) ? $parse_mode : $this->parse_mode;
-			$this->result = $this->request('sendMessage', $content);
-			return $this;
-		}
-
 		public function setInlineKeyBoard($keyboard = [])
 		{
 			if (!count($keyboard)) {
@@ -180,6 +171,15 @@
 			new TelegramErrorHandler('action topilmadi!');
 		}
 
+		public function sendMessage($text, $chat_id = null, $parse_mode = null)
+		{
+			$content['text'] = $text;
+			$content['chat_id'] = (!is_null($chat_id)) ? $chat_id : $this->chat_id;
+			$content['parse_mode'] = (!is_null($parse_mode)) ? $parse_mode : $this->parse_mode;
+			$this->result = $this->request('sendMessage', $content);
+			return $this;
+		}
+
 		public function sendPhoto($photo, $caption = null, $chat_id = null)
 		{
 			$chat_id = $chat_id ? $chat_id : $this->chat_id;
@@ -187,10 +187,10 @@
 			$data = compact('chat_id', 'photo', 'caption');
 			if (!file_exists($photo) && filter_var($photo, FILTER_VALIDATE_URL)) {
 				$this->result = $this->request('sendPhoto', $data);
-				return $this->result;
+				return $this;
 			}
 			// $this->result = $this->uploadFile();
-			// return $this->result;
+			// return $this;
 		}
 
 		public function sendVideo($video, $caption = null, $chat_id = null)
@@ -200,10 +200,10 @@
 			$data = compact('chat_id', 'video', 'caption');
 			if (!file_exists($video) && filter_var($video, FILTER_VALIDATE_URL)) {
 				$this->result = $this->request('sendVideo', $data);
-				return $this->result;
+				return $this;
 			}
 			// $this->result = $this->uploadFile();
-			// return $this->result;
+			// return $this;
 		}
 
 		public function sendAudio($audio, $caption = null, $chat_id = null)
@@ -213,10 +213,39 @@
 			$data = compact('chat_id', 'audio', 'caption');
 			if (!file_exists($audio) && filter_var($audio, FILTER_VALIDATE_URL)) {
 				$this->result = $this->request('sendAudio', $data);
-				return $this->result;
+				return $this;
 			}
 			// $this->result = $this->uploadFile();
-			// return $this->result;
+			// return $this;
+		}
+
+		public function sendDocument($document, $caption = null, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $chat_id : $this->chat_id;
+			$caption = $caption ? $caption : '';
+			$data = compact('chat_id', 'document', 'caption');
+			if (!file_exists($document) && filter_var($document, FILTER_VALIDATE_URL)) {
+				$this->result = $this->request('sendDocument', $data);
+				return $this;
+			}
+			// $this->result = $this->uploadFile();
+			// return $this;
+		}
+
+		public function sendLocation($latitude, $longitude, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $chat_id : $this->chat_id;
+			$data = compact('chat_id', 'latitude', 'longitude');
+			$this->result = $this->request('sendLocation', $data);
+			return $this;
+		}
+
+		public function sendContact($phone_number, $first_name, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $chat_id : $this->chat_id;
+			$data = compact('chat_id', 'phone_number', 'first_name');
+			$this->result = $this->request('sendContact', $data);
+			return $this;
 		}
 
 		public function getMe()
