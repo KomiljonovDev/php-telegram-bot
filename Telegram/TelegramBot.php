@@ -26,6 +26,7 @@
 		private $showErrors = true;
 		private $saveLogs = true;
 		private $logUrl = 'Telegram/uploads/logs/error.log';
+		private $tmpUrl = 'Telegram/uploads/tmp/';
 		private $parse_mode = 'html';
 		private $settings = [];
 
@@ -228,7 +229,9 @@
 			$data = compact('chat_id', 'document', 'caption');
 			if (!file_exists($document) && filter_var($document, FILTER_VALIDATE_URL)) {
 				$this->result = $this->request('sendDocument', $data);
-				return $this;
+				if ($this->result->ok) {
+					return $this;
+				}
 			}
 			$this->result = $this->uploadFile('sendDocument',$data);
 			return $this;
@@ -261,7 +264,7 @@
 			);
 			if (filter_var($content[$methods[$action]], FILTER_VALIDATE_URL)) {
 				
-				$file = 'Telegram/uploads/tmp/' . rand(0, 10000);
+				$file = $this->tmpUrl . rand(0, 10000);
 				$byUrl = true;
 				file_put_contents($file, file_get_contents($content[$methods[$action]]));
 				$finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -283,10 +286,10 @@
 	            		new TelegramErrorHandler("Noto'g'ri file turi kiritildi!");
 	            		return;
 	            	}
-	            	$newFile = $file . $extensions[$mime_type];
-	            	rename($file, $newFile);
-	            	$content[$methods[$action]] = new CURLFile($newFile, $mime_type, $newFile);
 	            }
+            	$newFile = $file . $extensions[$mime_type];
+            	rename($file, $newFile);
+            	$content[$methods[$action]] = new CURLFile($newFile, $mime_type, $newFile);
 			}else{
 				$finfo = finfo_open(FILEINFO_MIME_TYPE);
 				$mime_type = finfo_file($finfo, $content[$methods[$action]]);
@@ -296,9 +299,9 @@
 
 			$this->fileSize = filesize($newFile);
 
-			$this->forProgress = round(($this->fileSize * 10 / 100) / 1024 * 1024, 0);
+			$this->forProgress = round($this->fileSize / (1024 ** 2) / 10, 0);
 			$this->forProgressPercent = $this->forProgress;
-
+			$this->sendMessage("forProgress: " . $this->forProgress . "\nPercent: " . $this->forProgressPercent);
 			$url = $this->apiUrl . $this->botUrl .  $this->botToken . '/' . $action;
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, $url);
@@ -324,7 +327,6 @@
 			return $this->request;
 		}
 
-		// Ushbu yerdan qoldim, video ni hostingda bemalol yuklayapti,togridan togri link bilan yuklamayapti
 		public function uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded,  $action, $content)
 		{
 			if ($this->fileSize >= 1048576) {
