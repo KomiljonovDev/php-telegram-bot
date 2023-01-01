@@ -25,15 +25,19 @@
 		private $botToken = null;
 		private $showErrors = true;
 		private $saveLogs = true;
+		private $withProgress = true;
 		private $logUrl = 'Telegram/uploads/logs/error.log';
 		private $tmpUrl = 'Telegram/uploads/tmp/';
 		private $parse_mode = 'html';
 		private $settings = [];
 
 		private $chat_id;
+		private $message_id;
 		private $result;
 		private $request;
 		private $reply_markup;
+
+		private $forProgress;
 
 		function __construct($dataSet)
 		{
@@ -181,6 +185,16 @@
 			return $this;
 		}
 
+		public function editMessageText($text, $message_id = null, $chat_id = null, $parse_mode = null)
+		{
+			$content['text'] = $text;
+			$content['chat_id'] = $chat_id ? $chat_id : $this->chat_id;
+			$content['message_id'] = $message_id ? $message_id : $this->result->result->message_id;
+			$content['parse_mode'] = $parse_mode ? $parse_mode : $this->parse_mode;
+			$this->result = $this->request('editMessageText', $content);
+			return $this;
+		}
+
 		public function sendPhoto($photo, $caption = null, $chat_id = null)
 		{
 			$chat_id = $chat_id ? $chat_id : $this->chat_id;
@@ -300,7 +314,7 @@
 			curl_setopt($ch, CURLOPT_URL, $url);
 			curl_setopt($ch, CURLOPT_POST, true);
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
-			curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+			curl_setopt($ch, CURLOPT_NOPROGRESS, ($this->withProgress) ? false : true);
 			curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($resource, $downloaded, $download_size, $upload_size, $uploaded) use($action, $content)
 			{
 				$this->uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded, $action, $content);
@@ -322,23 +336,30 @@
 
 		public function uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded,  $action, $content)
 		{
-			$actions = array(
-				'sendPhoto' => 'upload_photo',
-				'sendAudio' => 'upload_audio',
-				'sendVoice' => 'upload_voice',
-				'sendDocument' => 'upload_document',
-				'sendVideo' => 'upload_video'
-			);
-			if (array_key_exists($action, $actions)) {
-				$action = $actions[$action];
-			}else{
-				$action = 'typing';
+			if (is_null($this->forProgress)) {
+				$this->forProgress = microtime(true) + 1;
 			}
-			if ($this->forProgress == 1) {
-				$this->forProgress = $this->forProgressPercent;
+			if ($this->forProgress <= microtime(true)) {
+				$actions = array(
+					'sendPhoto' => 'upload_photo',
+					'sendAudio' => 'upload_audio',
+					'sendVoice' => 'upload_voice',
+					'sendDocument' => 'upload_document',
+					'sendVideo' => 'upload_video'
+				);
+				if (array_key_exists($action, $actions)) {
+					$action = $actions[$action];
+				}else{
+					$action = 'typing';
+				}
+
+				$this->message_id = $this->message_id ? $this->message_id : $this->result('message_id');
+
+				$this->sendChatAction($action, $content['chat_id']);
+				$this->editMessageText("Yuklanmoqda: " . round(100 * $uploaded / $upload_size, 0) . "%" . "\n\nmicrotime: " . microtime(true) . "\nNextTime: " . $this->forProgress, $this->message_id);
+
+				$this->forProgress = microtime(true) + 1;
 			}
-			$this->sendChatAction($action, $content['chat_id']);
-			$this->sendMessage("Uploaded: " . $uploaded . "\nUploaded_size: " .  $upload_size);
 		}
 
 		public function getMe()
