@@ -202,10 +202,12 @@
 			$data = compact('chat_id', 'photo', 'caption');
 			if (!file_exists($photo) && filter_var($photo, FILTER_VALIDATE_URL)) {
 				$this->result = $this->request('sendPhoto', $data);
-				return $this;
+				if ($this->result->ok) {
+					return $this;
+				}
 			}
-			// $this->result = $this->uploadFile();
-			// return $this;
+			$this->result = $this->uploadFile('sendPhoto', $data);
+			return $this;
 		}
 
 		public function sendVideo($video, $caption = null, $chat_id = null)
@@ -215,10 +217,12 @@
 			$data = compact('chat_id', 'video', 'caption');
 			if (!file_exists($video) && filter_var($video, FILTER_VALIDATE_URL)) {
 				$this->result = $this->request('sendVideo', $data);
-				return $this;
+				if ($this->result->ok) {
+					return $this;
+				}
 			}
-			// $this->result = $this->uploadFile();
-			// return $this;
+			$this->result = $this->uploadFile('sendVideo', $data);
+			return $this;
 		}
 
 		public function sendAudio($audio, $caption = null, $chat_id = null)
@@ -228,10 +232,12 @@
 			$data = compact('chat_id', 'audio', 'caption');
 			if (!file_exists($audio) && filter_var($audio, FILTER_VALIDATE_URL)) {
 				$this->result = $this->request('sendAudio', $data);
-				return $this;
+				if ($this->result->ok) {
+					return $this;
+				}
 			}
-			// $this->result = $this->uploadFile();
-			// return $this;
+			$this->result = $this->uploadFile('sendAudio', $data);
+			return $this;
 		}
 
 		public function sendDocument($document, $caption = null, $chat_id = null)
@@ -356,7 +362,7 @@
 				$this->message_id = $this->message_id ? $this->message_id : $this->result('message_id');
 
 				$this->sendChatAction($action, $content['chat_id']);
-				$this->editMessageText("Yuklanmoqda: " . round(100 * $uploaded / $upload_size, 0) . "%" . "\n\nmicrotime: " . microtime(true) . "\nNextTime: " . $this->forProgress, $this->message_id);
+				$this->editMessageText("Yuklanmoqda: " . round(100 * $uploaded / $upload_size, 0) . "%", $this->message_id);
 
 				$this->forProgress = microtime(true) + 1;
 			}
