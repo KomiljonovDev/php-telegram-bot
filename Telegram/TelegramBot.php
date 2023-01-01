@@ -33,6 +33,7 @@
 
 		private $chat_id;
 		private $message_id;
+		private $channel_id;
 		private $result;
 		private $request;
 		private $reply_markup;
@@ -373,6 +374,48 @@
 			$this->result = $this->request('getMe');
 			return $this->result();
 		}
+		
+		public function getChatMember($user_id = null, $chat_id = null)
+		{
+			$user_id = $user_id ? $user_id : $this->chat_id;
+			$chat_id = $chat_id ? $chat_id : $this->channel_id;
+			$this->result = $this->request('getChatMember', compact('chat_id', 'user_id'));
+			return $this;
+		}
+
+		public function getFile($file_id)
+		{
+			$this->result = $this->request('getFile', compact('file_id'));
+			return $this;
+		}
+
+		public function getFilePath($file_id)
+		{
+			$this->request('getFile', compact('file_id'));
+			if ($this->request->ok) {
+				$file_path = $this->apiUrl . $this->fileUrl . $this->botUrl . $this->botToken . '/' . $this->request->result->file_path;
+				if (httpResponseCode($url) == '200') {
+					return file_get_contents($file_path);
+				}
+				return false;
+			}
+			return false;
+		}
+
+		public function getUpdates($offset = null)
+		{
+			return $this->request('getUpdates', compact('offset'));
+		}
+
+		public function getWebhookUpdates()
+		{
+			return json_decode(file_get_contents('php://input'));
+		}
+
+		public function getWebhookInfo()
+		{
+			return $this->request('getWebhookInfo');
+		}
 
 		public function result($key = null)
 		{
@@ -398,7 +441,12 @@
 			}
 		}
 
-	}
+		public function httpResponseCode($url)
+		{
+			$headers = get_headers($url);
+			return substr($headers[0], 9, 3);
+		}
 
+	}
 
 ?>
