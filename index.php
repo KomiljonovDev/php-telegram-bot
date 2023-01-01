@@ -3,9 +3,8 @@
 	require 'Telegram/TelegramBot.php';
 
 	use TelegramBot as Bot;
-	$dataSet = ['botToken'=>''];
+	$dataSet = ['botToken'=>'TELEGRAM BOT TOKEN'];
 
 	$bot = new Bot($dataSet);
-	$bot->getMe();
-	print_r($bot->result());
+	
 ?>
