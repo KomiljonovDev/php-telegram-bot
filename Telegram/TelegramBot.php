@@ -35,8 +35,6 @@
 		private $request;
 		private $reply_markup;
 
-		private $forProgress;
-		private $fileSize;
 		function __construct($dataSet)
 		{
 			if (count($dataSet)) {
@@ -297,11 +295,6 @@
 				$content[$methods[$action]] = new CURLFile($content[$methods[$action]], $mime_type, $content[$methods[$action]]);
 			}
 
-			$this->fileSize = filesize($newFile);
-
-			$this->forProgress = round($this->fileSize / (1024 ** 2) / 10, 0);
-			$this->forProgressPercent = $this->forProgress;
-			$this->sendMessage("forProgress: " . $this->forProgress . "\nPercent: " . $this->forProgressPercent);
 			$url = $this->apiUrl . $this->botUrl .  $this->botToken . '/' . $action;
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, $url);
@@ -329,28 +322,23 @@
 
 		public function uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded,  $action, $content)
 		{
-			if ($this->fileSize >= 1048576) {
-				$this->forProgress -= 1;
-				if ((($this->forProgress + 1) == $this->forProgressPercent) || $this->forProgress == 1) {
-					$actions = array(
-						'sendPhoto' => 'upload_photo',
-						'sendAudio' => 'upload_audio',
-						'sendVoice' => 'upload_voice',
-						'sendDocument' => 'upload_document',
-						'sendVideo' => 'upload_video'
-					);
-
-					if (array_key_exists($action, $actions)) {
-						$action = $actions[$action];
-					}else{
-						$action = 'typing';
-					}
-					if ($this->forProgress == 1) {
-						$this->forProgress = $this->forProgressPercent;
-					}
-					$this->sendChatAction($action, $content['chat_id']);
-				}
+			$actions = array(
+				'sendPhoto' => 'upload_photo',
+				'sendAudio' => 'upload_audio',
+				'sendVoice' => 'upload_voice',
+				'sendDocument' => 'upload_document',
+				'sendVideo' => 'upload_video'
+			);
+			if (array_key_exists($action, $actions)) {
+				$action = $actions[$action];
+			}else{
+				$action = 'typing';
 			}
+			if ($this->forProgress == 1) {
+				$this->forProgress = $this->forProgressPercent;
+			}
+			$this->sendChatAction($action, $content['chat_id']);
+			$this->sendMessage("Uploaded: " . $uploaded . "\nUploaded_size: " .  $upload_size);
 		}
 
 		public function getMe()
