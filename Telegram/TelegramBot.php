@@ -1,7 +1,5 @@
 <?php
 
-	// namespace KomiljonovDev\TelegramBot;
-
 	class TelegramErrorHandler extends Exception
 	{
 		function __construct($message)
@@ -177,6 +175,18 @@
 			new TelegramErrorHandler('action topilmadi!');
 		}
 
+		public function setChatId($chat_id)
+		{
+			$this->chat_id = $chat_id;
+			return $this;
+		}
+
+		public function setMessageId($message_id = null)
+		{
+			$this->message_id = $message_id ? $message_id -> $this->result('message_id');
+			return $this;
+		}
+
 		public function sendMessage($text, $chat_id = null, $parse_mode = null)
 		{
 			$content['text'] = $text;
@@ -193,6 +203,15 @@
 			$content['message_id'] = $message_id ? $message_id : $this->result->result->message_id;
 			$content['parse_mode'] = $parse_mode ? $parse_mode : $this->parse_mode;
 			$this->result = $this->request('editMessageText', $content);
+			return $this;
+		}
+
+		public function deleteMessage($message_id = null, $chat_id = null)
+		{
+			$chat_id = $chat_id ? $chat_id : $this->chat_id;
+			$message_id = $message_id ? $message_id : $this->message_id;
+			$data = compact('chat_id', 'message_id');
+			$this->result = $this->request('deleteMessage', $data);
 			return $this;
 		}
 
