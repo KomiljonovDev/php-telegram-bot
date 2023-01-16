@@ -183,7 +183,7 @@
 
 		public function setMessageId($message_id = null)
 		{
-			$this->message_id = $message_id ? $message_id -> $this->result('message_id');
+			$this->message_id = $message_id ? $message_id : $this->result('message_id');
 			return $this;
 		}
 
