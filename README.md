@@ -1,16 +1,23 @@
 # PHP TELEGRAM BOT
-php dasturlash tilida bot yozish uchun ishlab chiqilgan kichik kutubxona.
+php dasturlash tilida telegram bot yozish uchun ishlab chiqilgan kichik kutubxona.
 # Ishga tushurish
-Botni sozlash
-```php
-<?php
-require 'Telegram/TelegramBot.php';
+Fayllarni sozlash
+1. `.env` fayli `.env.example` kabi ochiladi
+2. `.env` fayliga kerak ma'lumotlar kiritiladi:
+```env
+HOSTNAME=YOUR_HOSTNAME
+DATABASE_USERNAME=YOUR_USERNAME
+DATABASE_PASSWORD=YOUR_PASSWORD
+DATABASE_NAME=YOUR_DATABASE_NAME
 
-use TelegramBot as Bot;
-$dataSet = ['botToken'=>'TELEGRAM BOT TOKEN'];
+users_table=users
+admins_table=admins
 
-$bot = new Bot($dataSet);
+bot_token=YOUR_BOT_TOKEN
+bot_username=@YOUR_BOT_USERNAME
 ```
+Ma'lumotlar bazasi bilan ishlash bo'yicha [bu yerda o'qing](https://github.com/KomiljonovDev/db-connector)
+
 Habar yuborish
 ```php
 $bot->sendMessage('Assalomu alaykum', 931026030);
