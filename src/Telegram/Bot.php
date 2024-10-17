@@ -5,33 +5,44 @@
  * @author KomiljonovDev
  *
  */
-namespace Core\Telegram;
+
+namespace App\Telegram;
+
+use Exception;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
+use stdClass;
 
 class Bot {
 
-    private $apiUrl = 'https://api.telegram.org';
-    private $botUrl = '/bot';
-    private $fileUrl = '/file';
+    private string $apiUrl = 'https://api.telegram.org';
+    private string $botUrl = '/bot';
+    private string $fileUrl = '/file';
 
-    private $botToken = null;
-    private $showErrors = false;
-    private $saveLogs = false;
-    private $withProgress = false;
-    private $logUrl = 'tmp/uploads/logs/error.log';
-    private $tmpUrl = 'tmp/uploads/tmp/';
-    private $parse_mode = 'html';
-    private $settings = [];
+    private string|null $botToken = null;
+    private bool $showErrors = false;
+    private bool $saveLogs = false;
+    private bool $withProgress = false;
+    private string $logUrl = 'resources/tmp/logs/error.log';
+    private string $tmpUrl = 'resources/tmp/uploads/tmp/';
+    private string $parse_mode = 'html';
+    private array $settings = [];
 
-    private $chat_id;
-    private $message_id;
-    private $channel_id;
-    private $result;
-    private $request;
-    private $reply_markup;
+    private ?int $chat_id;
+    private int $message_id;
+    private int $channel_id;
+    private stdClass|null|array $result;
+    private stdClass|null|array $request;
+    private array|null $reply_markup = null;
 
-    private $forProgress;
+    private string $forProgress;
 
-    function __construct ($dataSet) {
+    /**
+     * @throws Exception
+     */
+    function __construct (array $dataSet) {
+        $this->showErrors = $_ENV['DEBUG'];
         if (count($dataSet)) {
             $this->settings = $dataSet;
             foreach ($dataSet as $key => $value) {
@@ -39,11 +50,18 @@ class Bot {
             }
         }
         if (!$this->botToken) {
-            new TelegramErrorHandler('Bot tokenni kiriting!');
+            $this->exception('Bot tokenni kiriting');
         }
     }
 
-    public function reset ($resetKey = false) {
+    /**
+     * @throws Exception
+     */
+    public function exception (string $message = null): Exception {
+        return throw new Exception($message);
+    }
+
+    public function reset ($resetKey = false): Bot {
         /**
          *
          * Aynan bir ma'lumotni o'zinigina tozalamoqchi bo'lingan
@@ -64,44 +82,49 @@ class Bot {
         return $this;
     }
 
-    public function request ($action, $content = []) {
+    /**
+     * @throws GuzzleException
+     */
+    public function request (string $action, array $content = []): stdClass|null {
+        $client = new Client(['base_uri' => $this->apiUrl . $this->botUrl . $this->botToken . '/', 'headers' => ['Content-Type' => 'application/json']]);
+
         if (!is_null($this->reply_markup)) {
             $content['reply_markup'] = $this->reply_markup;
         }
+
         if (!is_null($this->reply_markup) && array_key_exists('inline_keyboard', $content['reply_markup']) && count($content['reply_markup']['inline_keyboard']) > 0) {
             unset($content['reply_markup']['keyboard']);
         }
 
         $this->saveLogs($content);
 
-        $url = $this->apiUrl . $this->botUrl . $this->botToken . '/' . $action;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($content));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        $result = curl_exec($ch);
-        curl_close($ch);
-        $this->request = json_decode($result);
-        if ($this->showErrors && !$this->request->ok) {
-            new TelegramErrorHandler($this->request->description);
+        try {
+            $response = $client->post($action, ['json' => $content, 'verify' => false]);
+
+            $this->request = json_decode($response->getBody()->getContents());
+
+            return $this->request;
+        } catch (RequestException $e) {
+            if ($this->showErrors) {
+                $this->exception($e->getMessage());
+            }
+            return null;
         }
-        return $this->request;
     }
 
-    public function setWebHook ($url, $certificate = null) {
+    /**
+     * @throws Exception|GuzzleException
+     */
+    public function setWebHook (string $url, string $certificate = null): Bot|bool {
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
             if ($this->showErrors) {
-                new TelegramErrorHandler("Noto'g'ri Url kiritildi.");
+                $this->exception("Noto'g'ri Url kiritildi.");
             }
             return false;
         }
         if (parse_url($url, PHP_URL_SCHEME) !== 'https') {
             if ($this->showErrors) {
-                new TelegramErrorHandler("URL Noto'g'ri, https kabi bo'lishligi zarur!");
+                $this->exception("URL Noto'g'ri, https kabi bo'lishligi zarur!");
             }
             return false;
         }
@@ -109,10 +132,13 @@ class Bot {
         return $this;
     }
 
-    public function setInlineKeyBoard ($keyboard = []) {
+    /**
+     * @throws Exception
+     */
+    public function setInlineKeyBoard (array $keyboard = []): Bot|bool {
         if (!count($keyboard)) {
             if ($this->showErrors) {
-                new TelegramErrorHandler("Keyboard bo'sh bo'lmasligi zarur!");
+                $this->exception("Keyboard bo'sh bo'lmasligi zarur!");
             }
             return false;
         }
@@ -120,7 +146,7 @@ class Bot {
         return $this;
     }
 
-    public function setReplyKeyboard ($keyboard, $resize_keyboard = true, $remove_keyboard = false) {
+    public function setReplyKeyboard (array $keyboard, bool $resize_keyboard = true, bool $remove_keyboard = false): Bot {
         $this->reply_markup['keyboard'] = $keyboard;
         $this->reply_markup['resize_keyboard'] = $resize_keyboard;
         $this->reply_markup['remove_keyboard'] = $remove_keyboard;
@@ -128,12 +154,12 @@ class Bot {
         return $this;
     }
 
-    public function removeInlineKeyboard () {
+    public function removeInlineKeyboard (): Bot {
         unset($this->reply_markup['inline_keyboard']);
         return $this;
     }
 
-    public function removeReplyKeyboard () {
+    public function removeReplyKeyboard (): Bot {
         unset($this->reply_markup['keyboard']);
         unset($this->reply_markup['resize_keyboard']);
         unset($this->reply_markup['remove_keyboard']);
@@ -141,17 +167,21 @@ class Bot {
         return $this;
     }
 
-    public function sendChatAction ($action, $chat_id = null) {
+    /**
+     * @throws Exception|GuzzleException
+     */
+    public function sendChatAction (string $action, int $chat_id = null): Bot|null {
         $chat_id = $chat_id ? $this->chat_id = $chat_id : $this->chat_id;
         $actions = array('typing', 'upload_photo', 'upload_video', 'upload_audio', 'upload_voice', 'upload_document', 'choose_sticker', 'find_location',);
-        if (isset($action) && in_array($action, $actions)) {
+        if (in_array($action, $actions)) {
             $this->result = $this->request('sendChatAction', compact('chat_id', 'action'));
             return $this;
         }
-        new TelegramErrorHandler('action topilmadi!');
+        $this->exception('action topilmadi!');
+        return null;
     }
 
-    public function sendMessage ($text, $chat_id = null, $parse_mode = null) {
+    public function sendMessage (string $text, int $chat_id = null, string $parse_mode = null): Bot {
         $content['text'] = $text;
         $content['chat_id'] = (!is_null($chat_id)) ? $chat_id : $this->chat_id;
         $content['parse_mode'] = (!is_null($parse_mode)) ? $parse_mode : $this->parse_mode;
@@ -159,25 +189,25 @@ class Bot {
         return $this;
     }
 
-    public function editMessageText ($text, $message_id = null, $chat_id = null, $parse_mode = null) {
+    public function editMessageText (string $text, int $message_id = null, int $chat_id = null, string $parse_mode = null): Bot {
         $content['text'] = $text;
-        $content['chat_id'] = $chat_id ? $chat_id : $this->chat_id;
-        $content['message_id'] = $message_id ? $message_id : $this->result->result->message_id;
-        $content['parse_mode'] = $parse_mode ? $parse_mode : $this->parse_mode;
+        $content['chat_id'] = $chat_id ?: $this->chat_id;
+        $content['message_id'] = $message_id ?: $this->result->result->message_id;
+        $content['parse_mode'] = $parse_mode ?: $this->parse_mode;
         $this->result = $this->request('editMessageText', $content);
         return $this;
     }
 
-    public function deleteMessage ($message_id = null, $chat_id = null, $parse_mode = null) {
-        $content['chat_id'] = $chat_id ? $chat_id : $this->chat_id;
-        $content['message_id'] = $message_id ? $message_id : $this->result->result->message_id;
+    public function deleteMessage (int $message_id = null, int $chat_id = null): Bot {
+        $content['chat_id'] = $chat_id ?: $this->chat_id;
+        $content['message_id'] = $message_id ?: $this->result->result->message_id;
         $this->result = $this->request('deleteMessage', $content);
         return $this;
     }
 
-    public function sendPhoto ($photo, $caption = null, $chat_id = null) {
-        $chat_id = $chat_id ? $chat_id : $this->chat_id;
-        $caption = $caption ? $caption : '';
+    public function sendPhoto (string $photo, string $caption = null, int $chat_id = null): Bot {
+        $chat_id = $chat_id ?: $this->chat_id;
+        $caption = $caption ?: '';
         $data = compact('chat_id', 'photo', 'caption');
         if (!file_exists($photo) && filter_var($photo, FILTER_VALIDATE_URL)) {
             $this->result = $this->request('sendPhoto', $data);
@@ -189,9 +219,9 @@ class Bot {
         return $this;
     }
 
-    public function sendVideo ($video, $caption = null, $chat_id = null) {
-        $chat_id = $chat_id ? $chat_id : $this->chat_id;
-        $caption = $caption ? $caption : '';
+    public function sendVideo (string $video, string $caption = null, int $chat_id = null): Bot {
+        $chat_id = $chat_id ?: $this->chat_id;
+        $caption = $caption ?: '';
         $data = compact('chat_id', 'video', 'caption');
         $data['parse_mode'] = $this->parse_mode;
 
@@ -205,9 +235,9 @@ class Bot {
         return $this;
     }
 
-    public function sendAudio ($audio, $caption = null, $chat_id = null) {
-        $chat_id = $chat_id ? $chat_id : $this->chat_id;
-        $caption = $caption ? $caption : '';
+    public function sendAudio (string $audio, string $caption = null, int $chat_id = null): Bot {
+        $chat_id = $chat_id ?: $this->chat_id;
+        $caption = $caption ?: '';
         $data = compact('chat_id', 'audio', 'caption');
         if (!file_exists($audio) && filter_var($audio, FILTER_VALIDATE_URL)) {
             $this->result = $this->request('sendAudio', $data);
@@ -219,9 +249,9 @@ class Bot {
         return $this;
     }
 
-    public function sendDocument ($document, $caption = null, $chat_id = null) {
-        $chat_id = $chat_id ? $chat_id : $this->chat_id;
-        $caption = $caption ? $caption : '';
+    public function sendDocument (string $document, string $caption = null, int $chat_id = null): Bot {
+        $chat_id = $chat_id ?: $this->chat_id;
+        $caption = $caption ?: '';
         $data = compact('chat_id', 'document', 'caption');
         $data['parse_mode'] = $this->parse_mode;
 
@@ -235,73 +265,84 @@ class Bot {
         return $this;
     }
 
-    public function sendLocation ($latitude, $longitude, $chat_id = null) {
-        $chat_id = $chat_id ? $chat_id : $this->chat_id;
+    public function sendLocation (float $latitude, float $longitude, int $chat_id = null): Bot {
+        $chat_id = $chat_id ?: $this->chat_id;
         $data = compact('chat_id', 'latitude', 'longitude');
         $this->result = $this->request('sendLocation', $data);
         return $this;
     }
 
-    public function sendContact ($phone_number, $first_name, $chat_id = null) {
-        $chat_id = $chat_id ? $chat_id : $this->chat_id;
+    public function sendContact (int $phone_number, string $first_name, int $chat_id = null): Bot {
+        $chat_id = $chat_id ?: $this->chat_id;
         $data = compact('chat_id', 'phone_number', 'first_name');
         $this->result = $this->request('sendContact', $data);
         return $this;
     }
 
-    public function uploadFile ($action, $content = []) {
+    /**
+     * @throws GuzzleException
+     */
+    public function uploadFile (string $action, array $content = []): stdClass|null {
         $methods = array('sendPhoto' => 'photo', 'sendAudio' => 'audio', 'sendDocument' => 'document', 'sendVideo' => 'video');
-        // $send = $this->sendMessage('Yuklanmoqda...', $content['chat_id']);
-        // $this->setMessageId($send->result->result->message_id);
-        if (filter_var($content[$methods[$action]], FILTER_VALIDATE_URL)) {
 
+        $client = new Client(['base_uri' => $this->apiUrl . $this->botUrl . $this->botToken . '/', 'headers' => ['Content-Type' => 'multipart/form-data']]);
+
+        if (filter_var($content[$methods[$action]], FILTER_VALIDATE_URL)) {
             $file = $this->tmpUrl . rand(0, 10000);
             $byUrl = true;
             file_put_contents($file, file_get_contents($content[$methods[$action]]));
+
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mime_type = finfo_file($finfo, $file);
             $extensions = array('image/jpeg' => '.jpg', 'image/png' => '.png', 'image/gif' => '.gif', 'image/bmp' => '.bmp', 'image/tiff' => '.tif', 'audio/ogg' => '.ogg', 'audio/mpeg' => '.mp3', 'video/mp4' => '.mp4', 'image/webp' => '.webp');
+
             if (strtolower($action) != 'senddocument') {
                 if (!array_key_exists($mime_type, $extensions)) {
                     unlink($file);
-                    new TelegramErrorHandler("Noto'g'ri file turi kiritildi!");
-                    return;
+                    $this->exception("Noto'g'ri file turi kiritildi!");
                 }
             }
+
             $newFile = $file . $extensions[$mime_type];
             rename($file, $newFile);
-            $content[$methods[$action]] = new CURLFile($newFile, $mime_type, $newFile);
+            $content[$methods[$action]] = $newFile;
         } else {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mime_type = finfo_file($finfo, $content[$methods[$action]]);
             $newFile = $content[$methods[$action]];
-            $content[$methods[$action]] = new CURLFile($content[$methods[$action]], $mime_type, $content[$methods[$action]]);
         }
 
-        $url = $this->apiUrl . $this->botUrl . $this->botToken . '/' . $action;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
-        curl_setopt($ch, CURLOPT_NOPROGRESS, ($this->withProgress) ?: true);
-        curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($resource, $downloaded, $download_size, $upload_size, $uploaded) use ($action, $content) {
-            $this->uploadProgress($resource, $downloaded, $download_size, $upload_size, $uploaded, $action, $content);
-        });
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $result = curl_exec($ch);
-        curl_close($ch);
+        $multipart = [['name' => $methods[$action], 'contents' => fopen($newFile, 'r'), 'filename' => basename($newFile), 'headers' => ['Content-Type' => $mime_type]]];
 
-        $this->request = json_decode($result, true);
-        if (isset($byUrl)) unlink($newFile);
-
-        if ($this->showErrors && !$this->result->ok) {
-            new TelegramErrorHandler($this->result->description);
+        foreach ($content as $key => $value) {
+            if ($key !== $methods[$action]) {
+                $multipart[] = ['name' => $key, 'contents' => $value];
+            }
         }
 
-        return $this->request;
+        try {
+            $response = $client->post($action, ['multipart' => $multipart, 'progress' => function ($downloadTotal, $downloadedBytes, $uploadTotal, $uploadedBytes) use ($action, $content) {
+                $this->uploadProgress(null, $downloadedBytes, $downloadTotal, $uploadTotal, $uploadedBytes, $action, $content);
+            }]);
+
+            $this->request = json_decode($response->getBody()->getContents());
+
+            if (isset($byUrl)) unlink($newFile);
+
+            if ($this->showErrors && !$this->request->ok) {
+                $this->exception($this->request->description);
+            }
+
+            return $this->request;
+        } catch (RequestException $e) {
+            if ($this->showErrors) {
+                $this->exception($e->getMessage());
+            }
+            return null;
+        }
     }
 
-    public function uploadProgress ($resource, $downloaded, $download_size, $upload_size, $uploaded, $action, $content) {
+    public function uploadProgress ($resource, $downloaded, $download_size, $upload_size, $uploaded, $action, $content): float|string|bool {
         if (is_null($this->forProgress)) {
             $this->forProgress = microtime(true) + 1;
         }
@@ -313,55 +354,56 @@ class Bot {
                 $action = 'typing';
             }
             $this->sendChatAction($action, $content['chat_id']);
-            $this->editMessageText("Yuklanmoqda: " . round(100 * $uploaded / $upload_size, 0) . "%", $this->message_id);
+            $this->editMessageText("Yuklanmoqda: " . round(100 * $uploaded / $upload_size) . "%", $this->message_id);
 
-            $this->forProgress = microtime(true) + 1;
+            return $this->forProgress = microtime(true) + 1;
         }
+        return false;
     }
 
-    public function setMessageId ($message_id) {
+    public function setMessageId (int $message_id): Bot {
         $this->message_id = $message_id;
         return $this;
     }
 
-    public function setChatId ($chat_id) {
+    public function setChatId (int $chat_id): Bot {
         $this->chat_id = $chat_id;
         return $this;
     }
 
-    public function setChannelId ($channel_id) {
+    public function setChannelId (int $channel_id): Bot {
         $this->channel_id = $channel_id;
         return $this;
     }
 
-    public function getMe () {
+    public function getMe (): stdClass {
         $this->result = $this->request('getMe');
         return $this->result();
     }
 
-    public function getChat ($chat_id = null) {
-        $chat_id = $chat_id ? $chat_id : $this->channel_id;
+    public function getChat (int|string $chat_id = null): bool|stdClass {
+        $chat_id = $chat_id ?: $this->channel_id;
         $this->result = $this->request('getChat', compact('chat_id'));
-        return $this;
+        return $this->result();
     }
 
-    public function getChatMember ($user_id = null, $chat_id = null) {
-        $user_id = $user_id ? $user_id : $this->chat_id;
-        $chat_id = $chat_id ? $chat_id : $this->channel_id;
+    public function getChatMember (int|string $user_id = null, int|string $chat_id = null): Bot {
+        $user_id = $user_id ?: $this->chat_id;
+        $chat_id = $chat_id ?: $this->channel_id;
         $this->result = $this->request('getChatMember', compact('chat_id', 'user_id'));
         return $this;
     }
 
-    public function getFile ($file_id) {
+    public function getFile (string $file_id): Bot {
         $this->result = $this->request('getFile', compact('file_id'));
         return $this;
     }
 
-    public function getFilePath ($file_id) {
+    public function getFilePath (string $file_id): bool|string {
         $this->request('getFile', compact('file_id'));
         if ($this->request->ok) {
             $file_path = $this->apiUrl . $this->fileUrl . $this->botUrl . $this->botToken . '/' . $this->request->result->file_path;
-            if (httpResponseCode($url) == '200') {
+            if ($this->httpResponseCode($file_path) == '200') {
                 return file_get_contents($file_path);
             }
             return false;
@@ -369,19 +411,42 @@ class Bot {
         return false;
     }
 
-    public function getUpdates ($offset = null) {
+    public function getUpdates (int $offset = null): stdClass {
         return $this->request('getUpdates', compact('offset'));
     }
 
-    public function getWebhookUpdates () {
+    public function update (?string $key=null, ?stdClass $obj=null):mixed {
+        if (is_null($key)){
+            return $this->getWebhookUpdates();
+        }
+        if (is_null($obj)){
+            $obj = $this->getWebhookUpdates();
+            if (isset($obj->$key)){
+                return $obj->$key;
+            }
+        }
+        if (isset($obj->$key)){
+            return $obj->$key;
+        }
+        if (is_object($obj)){
+            foreach ($obj as $value) {
+                if (is_object($value)){
+                    return $this->update($key, $value);
+                }
+            }
+        }
+        return null;
+    }
+
+    public function getWebhookUpdates (): ?stdClass {
         return json_decode(file_get_contents('php://input'));
     }
 
-    public function getWebhookInfo () {
+    public function getWebhookInfo (): stdClass {
         return $this->request('getWebhookInfo');
     }
 
-    public function result ($key = null) {
+    public function result (string $key = null): stdClass|bool {
         if (!is_null($key)) {
             if (property_exists($this->result, 'result')) {
                 if (property_exists($this->result->result, $key)) {
@@ -394,7 +459,7 @@ class Bot {
         return $this->result;
     }
 
-    public function saveLogs ($content) {
+    public function saveLogs (array|string $content): void {
         if ($this->saveLogs) {
             if (is_array($content)) $content = json_encode($content);
             $file = fopen($this->logUrl, 'a');
@@ -403,8 +468,12 @@ class Bot {
         }
     }
 
-    public function httpResponseCode ($url) {
+    public function httpResponseCode (string $url): string {
         $headers = get_headers($url);
         return substr($headers[0], 9, 3);
+    }
+
+    private function settings (): array {
+        return $this->settings;
     }
 }

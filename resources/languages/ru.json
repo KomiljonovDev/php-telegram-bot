@@ -1,0 +1,20 @@
+{
+  "start": "Привет и добро пожаловать",
+  "choose_lang": "Kerakli tilni tanlang",
+  "start_buttons":{
+    "add_order": "Разместить заказ",
+    "orders": "Заказы",
+    "help": "Помощь",
+    "balance":"Баланс",
+    "partnership":"Сотрудничество"
+  },
+  "help": "Это о тексте бота",
+  "add_order": "Добавить новый заказ",
+  "cancel_buttons": {
+    "cancel": "Отмена",
+    "back": "Назад"
+  },
+  "my_balance": "Ваш баланс: $balance сум",
+  "my_orders": "Ваши заказы:",
+  "partnership": "Hamkorlik texti"
+}

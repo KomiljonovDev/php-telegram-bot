@@ -1,0 +1,20 @@
+{
+  "start": "Hello and welcome",
+  "choose_lang": "Kerakli tilni tanlang",
+  "start_buttons": {
+    "add_order": "Place an order",
+    "orders": "Orders",
+    "help": "Help",
+    "balance": "Balance",
+    "partnership": "Cooperation"
+  },
+  "help": "This is about text of bot",
+  "add_order": "Add a new order",
+  "cancel_buttons": {
+    "cancel": "Cancel",
+    "back": "Back"
+  },
+  "my_balance": "Your balance: $balance soum",
+  "my_orders": "Your orders:",
+  "partnership": "Hamkorlik texti"
+}

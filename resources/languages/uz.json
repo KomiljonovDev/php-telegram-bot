@@ -1,0 +1,20 @@
+{
+  "start": "Assalomu alaykum, xush kelibsiz, ru",
+  "choose_lang": "Kerakli tilni tanlang",
+  "start_buttons":{
+    "add_order": "Buyurtma berish",
+    "orders": "Buyurtmalar",
+    "help": "Yordam",
+    "balance":"Balans",
+    "partnership":"Hamkorlik"
+  },
+  "help": "Botning about texti",
+  "add_order": "Yangi buyurtma qo'shish",
+  "cancel_buttons": {
+    "cancel": "Bekor qilish",
+    "back": "Ortga"
+  },
+  "my_balance": "Sizning balansingiz: $balance so'm",
+  "my_orders": "Sizning buyurtmalaringiz:",
+  "partnership": "Hamkorlik texti"
+}
