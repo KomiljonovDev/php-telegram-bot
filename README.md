@@ -13,7 +13,7 @@ DATABASE_NAME=YOUR_DATABASE_NAME
 BOT_TOKEN=YOUR_BOT_TOKEN
 BOT_USERNAME=@YOUR_BOT_USERNAME
 ```
-Ma'lumotlar bazasi bilan ishlash bo'yicha [bu yerda o'qing](https://github.com/KomiljonovDev/db-connector)
+Ma'lumotlar bazasi bilan ishlash bo'yicha [bu yerda o'qing](https://github.com/KomiljonovDev/php-db-query-builder)
 
 Habar yuborish
 ```php
