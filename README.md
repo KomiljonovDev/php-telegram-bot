@@ -10,11 +10,8 @@ DATABASE_USERNAME=YOUR_USERNAME
 DATABASE_PASSWORD=YOUR_PASSWORD
 DATABASE_NAME=YOUR_DATABASE_NAME
 
-USERS_TABLE=users
-ADMINS_TABLE=admins
-
-bot_token=YOUR_BOT_TOKEN
-bot_username=@YOUR_BOT_USERNAME
+BOT_TOKEN=YOUR_BOT_TOKEN
+BOT_USERNAME=@YOUR_BOT_USERNAME
 ```
 Ma'lumotlar bazasi bilan ishlash bo'yicha [bu yerda o'qing](https://github.com/KomiljonovDev/db-connector)
 
